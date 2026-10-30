@@ -230,13 +230,16 @@ function derive(plan){
 }
 const SCOPE_NAME={all:'Вся Библия',heb:'Еврейские писания',gr:'Греческие писания'};
 function planName(p){
-  const du={365:'за год',270:'за 9 месяцев',180:'за 6 месяцев',90:'за 3 месяца',40:'за 40 дней'}[p.days]||('за '+p.days+' '+pluralRu(p.days,['день','дня','дней']));
+  const du={1095:'за 3 года',730:'за 2 года',548:'за 1,5 года',365:'за год',270:'за 9 месяцев',180:'за 6 месяцев',90:'за 3 месяца',40:'за 40 дней'}[p.days]||('за '+p.days+' '+pluralRu(p.days,['день','дня','дней']));
   return SCOPE_NAME[p.scope]+' '+du+(p.order==='chrono'?', хронологически':'');
 }
 const fmtPace=p=>(Math.round(p*10)/10).toString().replace('.',',');
 const PRESETS=[
   {n:'Вся Библия за год',scope:'all',order:'canon',days:365},
   {n:'Хронологически за год',scope:'all',order:'chrono',days:365},
+  {n:'Вся Библия за 1,5 года',scope:'all',order:'canon',days:548},
+  {n:'Вся Библия за 2 года',scope:'all',order:'canon',days:730},
+  {n:'Вся Библия за 3 года',scope:'all',order:'canon',days:1095},
   {n:'Вся Библия за 9 месяцев',scope:'all',order:'canon',days:270},
   {n:'Вся Библия за 6 месяцев',scope:'all',order:'canon',days:180},
   {n:'Вся Библия за 3 месяца',scope:'all',order:'canon',days:90},
@@ -291,7 +294,7 @@ async function initRemote(){
 }
 
 /* ---------- UI state ---------- */
-const ui={tab:'today',ahead:0,showAllCarried:false,openDay:null,draft:null,confirmReset:false,day:todayStr(),skipDate:'',skipMsg:''};
+const ui={tab:'today',ahead:0,showAllCarried:false,openDay:null,draft:null,confirmReset:false,day:todayStr(),skipDate:'',skipMsg:'',remTime:(function(){try{return localStorage.getItem('bible-rem-time')||'20:00'}catch(e){return '20:00'}})()};
 const ICON_CHECK='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
 const ICON_GO='<svg class="go" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"/></svg>';
 
@@ -450,6 +453,8 @@ function planView(){
   h+='<section class="card pad stack"><h2>Пропущенные дни</h2><p class="small muted">В эти дни главы не прибавляются, график сдвигается на следующий день.</p>'+
     (fut.length?'<div class="chips">'+fut.map(x=>'<span class="chip">'+fmtD(x,{day:'numeric',month:'short'})+'<button data-a="unskip" data-date="'+x+'" aria-label="Вернуть день '+x+'">×</button></span>').join('')+'</div>':'<p class="small muted">Пока нет.</p>')+
     '<div class="fld"><label for="f-skip">Добавить день</label><div class="two"><input class="inp" id="f-skip" type="date" value="'+ui.skipDate+'" min="'+todayStr()+'"><button class="btn" data-a="addSkip">Пропустить</button></div>'+(ui.skipMsg?'<p class="small" style="color:var(--carry)">'+ui.skipMsg+'</p>':'')+'</div></section>';
+  h+='<section class="card pad stack"><h2>Напоминание</h2><p class="small muted">Ежедневное событие в Календаре устройства с уведомлением. Время задаётся на каждом устройстве отдельно.</p>'+
+    '<div class="fld"><label for="f-rem">Время</label><div class="two"><input class="inp" id="f-rem" type="time" value="'+ui.remTime+'"><button class="btn" data-a="remind">Добавить в Календарь</button></div></div></section>';
   h+='<section class="card pad stack"><h2>Ссылки на Библию</h2><p class="small muted">Главы открываются в Священном Писании в переводе «Новый мир» (учебное издание) на русском языке.</p>'+
     seg('link',S.link,[['web','Через jw.org'],['app','Напрямую в приложение']])+
     '<p class="small muted">Обычная ссылка открывает JW Library, если приложение установлено. Если вместо него открывается браузер, включите прямую ссылку.</p></section>';
@@ -471,6 +476,16 @@ function setSkip(date,on){
   S.plan=Object.assign({},S.plan,{skips:[...set].sort()});
   ui.ahead=0;touch();render();
 }
+function makeIcs(time){
+  const [hh,mm]=time.split(':').map(Number),now=new Date();
+  let d=todayStr();if(hh*60+mm<=now.getHours()*60+now.getMinutes())d=addDays(d,1);
+  const z=n=>String(n).padStart(2,'0'),ds=d.replace(/-/g,'')+'T'+z(hh)+z(mm)+'00';
+  const url=location.href.split('#')[0].replace(/^blob:|^file:.*/,'');
+  return ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Bible schedule//RU','CALSCALE:GREGORIAN','BEGIN:VEVENT',
+    'UID:bible-reading-'+z(hh)+z(mm)+'@schedule','DTSTAMP:'+new Date().toISOString().replace(/[-:]/g,'').slice(0,15)+'Z',
+    'DTSTART:'+ds,'DURATION:PT15M','RRULE:FREQ=DAILY','SUMMARY:Чтение Библии','DESCRIPTION:Откройте график чтения.'+(url?' '+url:''),
+    url?'URL:'+url:'','BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:Чтение Библии','TRIGGER:PT0S','END:VALARM','END:VEVENT','END:VCALENDAR'].filter(Boolean).join('\r\n')+'\r\n';
+}
 const A={
   tab(t){ui.tab=t.dataset.v;ui.openDay=null;ui.confirmReset=false;if(ui.tab==='plan')ui.draft=draftFromPlan();render(true)},
   toggle(t){const k=+t.dataset.k;if(S.read.has(k))S.read.delete(k);else S.read.add(k);touch();render()},
@@ -480,6 +495,12 @@ const A={
   startNow(){S.plan=Object.assign({},S.plan,{startDate:todayStr()});touch();render()},
   rebase(){const m=model();if(!m.nextKey)return;S.plan=Object.assign({},S.plan,{startKey:m.nextKey,startDate:todayStr()});ui.ahead=0;ui.showAllCarried=false;touch();render()},
   openDay(t){const k=t.dataset.dd;ui.openDay=ui.openDay===k?null:k;render()},
+  remind(){
+    const v=ui.remTime||'20:00';try{localStorage.setItem('bible-rem-time',v)}catch(e){}
+    const blob=new Blob([makeIcs(v)],{type:'text/calendar;charset=utf-8'}),u=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=u;a.download='chtenie-biblii.ics';document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(u),4000);
+  },
   skipToday(){setSkip(todayStr(),true)},
   skipDay(t){setSkip(t.dataset.date,true)},
   unskip(t){setSkip(t.dataset.date,false)},
@@ -513,6 +534,7 @@ document.addEventListener('change',e=>{
   else if(t.id==='f-ch'){ui.draft.startKey=key(bookOf(ui.draft.startKey),+t.value);updatePreview()}
   else if(t.id==='f-stretch'){ui.draft.stretch=t.checked;updatePreview()}
   else if(t.id==='f-keep'){ui.draft.keepRead=t.checked}
+  else if(t.id==='f-rem'){if(t.value)ui.remTime=t.value}
   else if(t.id==='f-skip'){ui.skipDate=t.value;ui.skipMsg=''}
 });
 document.addEventListener('visibilitychange',()=>{
