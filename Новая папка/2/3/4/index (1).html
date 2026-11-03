@@ -1,0 +1,568 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1F6B4F">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Чтение">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<title>График чтения Библии</title>
+
+
+<style>
+/* Layout: one narrow column with three bottom tabs (Сегодня / График / План); progress is drawn as a shelf of book spines. */
+:root{
+  --bg:#EDF0EC; --surface:#F8FAF7; --ink:#17231D; --ink-2:#4C5E54; --line:#D3DAD2;
+  --accent:#1F6B4F; --accent-ink:#FFFFFF; --accent-soft:#DCEBE2;
+  --carry:#8F500C; --carry-soft:#F1E3CC; --spine:#C9D2CA;
+  --f-display:"Literata",Georgia,"Times New Roman",serif;
+  --f-body:"Golos Text",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F1612; --surface:#17211B; --ink:#E5EDE7; --ink-2:#95A89C; --line:#263329;
+    --accent:#6CC79A; --accent-ink:#0B1F14; --accent-soft:#1D3A2B;
+    --carry:#E3A862; --carry-soft:#33260F; --spine:#2B382E; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F1612; --surface:#17211B; --ink:#E5EDE7; --ink-2:#95A89C; --line:#263329;
+  --accent:#6CC79A; --accent-ink:#0B1F14; --accent-soft:#1D3A2B;
+  --carry:#E3A862; --carry-soft:#33260F; --spine:#2B382E; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{
+  background:var(--bg); color:var(--ink); font-family:var(--f-body); font-size:15px; line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px)); padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:20px 104px;
+}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+.view{display:flex;flex-direction:column;gap:16px}
+.view>*{min-width:0}
+
+.hd{display:flex;flex-direction:column;gap:4px;padding-top:4px}
+.eyebrow{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);font-weight:500}
+h1{margin:0;font:600 34px/1.1 var(--f-display);letter-spacing:-.01em;text-wrap:balance}
+h2{margin:0;font:600 20px/1.2 var(--f-display);text-wrap:balance}
+h3.mo{margin:8px 0 -6px;font:600 13px var(--f-body);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2)}
+p{margin:0}
+.muted{color:var(--ink-2)}
+.small{font-size:13px}
+.planline{color:var(--ink-2);font-size:14px}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.card.pad{padding:16px}
+.card>.ch:first-child,.card>.dw:first-child .day{border-top:0}
+.cardhd{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:14px 16px 12px}
+
+.ch{display:flex;align-items:center;gap:6px;padding:6px 16px 6px 6px;border-top:1px solid var(--line)}
+.ck{width:48px;height:48px;flex:none;border:0;background:none;display:grid;place-items:center;padding:0}
+.ck i{width:26px;height:26px;border-radius:50%;border:2px solid var(--ink-2);display:grid;place-items:center;color:transparent;transition:background .12s,border-color .12s}
+.ck[aria-pressed="true"] i{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.nm{flex:1;min-width:0;display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px;color:inherit;text-decoration:none;padding:8px 0}
+.nm .t{font:600 18px/1.25 var(--f-display)}
+.go{flex:none;color:var(--accent)}
+.is-done .nm .t{color:var(--ink-2);font-weight:500}
+.tag{font-size:12px;letter-spacing:.02em;line-height:1;padding:4px 8px;border-radius:99px;color:var(--carry);background:var(--carry-soft);white-space:nowrap}
+.tag.now{color:var(--accent);background:var(--accent-soft)}
+.tag.ok{color:var(--accent);background:var(--accent-soft)}
+
+.btn{min-height:44px;padding:10px 16px;border-radius:10px;border:1px solid var(--line);background:var(--surface);font-weight:500}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.ghost{background:none;border-color:transparent;color:var(--accent);padding-inline:8px}
+.btn.warn{border-color:var(--carry);color:var(--carry)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.foot{display:flex;gap:8px;flex-wrap:wrap;padding:12px 16px;border-top:1px solid var(--line)}
+
+.note{display:flex;flex-direction:column;gap:10px;padding:14px 16px;border-radius:12px;background:var(--carry-soft);color:var(--ink)}
+.note b{font-weight:600}
+.note.ok{background:var(--accent-soft)}
+
+.bar{height:8px;border-radius:99px;background:var(--spine);overflow:hidden}
+.bar>i{display:block;height:100%;background:var(--accent);border-radius:99px}
+.stat{display:flex;justify-content:space-between;gap:12px;align-items:baseline;flex-wrap:wrap}
+.stat b{font:600 22px var(--f-display);font-variant-numeric:tabular-nums}
+
+.shelf{display:flex;flex-direction:column;gap:10px}
+.shelf .lbl{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);margin-bottom:4px}
+.spines{display:flex;gap:1px;align-items:flex-end}
+.sp{position:relative;height:34px;min-width:2px;flex-basis:0;background:var(--spine);border-radius:2px;overflow:hidden}
+.sp::after{content:"";position:absolute;left:0;right:0;bottom:0;height:calc(var(--f) * 100%);background:var(--accent)}
+.sp.out{opacity:.4;background:transparent;border:1px dashed var(--ink-2)}
+.sp.out::after{display:none}
+.sp.cur{outline:2px solid var(--ink);outline-offset:1px}
+
+.dw{border-top:1px solid var(--line)}
+.day{display:grid;grid-template-columns:52px minmax(0,1fr) auto;align-items:center;gap:12px;width:100%;padding:12px 16px;border:0;background:none;text-align:left;min-height:60px}
+.day.today{background:var(--accent-soft)}
+.dd{display:flex;flex-direction:column;gap:2px}
+.dd b{font:600 22px/1 var(--f-display);font-variant-numeric:tabular-nums}
+.dd span{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2)}
+.lb{font-weight:500;min-width:0;overflow-wrap:anywhere}
+.st{display:flex;align-items:center;justify-content:flex-end;color:var(--accent);font-size:13px;font-variant-numeric:tabular-nums}
+.day.done .lb{color:var(--ink-2)}
+.dayx{background:var(--bg);border-top:1px solid var(--line)}
+.dayx .ch{border-top:1px solid var(--line)}
+.dayx .ch:first-child{border-top:0}
+
+.fld{display:flex;flex-direction:column;gap:6px}
+.fld>label,.lab{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2);font-weight:500}
+.inp{min-height:44px;width:100%;border:1px solid var(--line);border-radius:10px;padding:0 12px;background:var(--surface);font-size:16px}
+.two{display:grid;grid-template-columns:minmax(0,1fr) 96px;gap:8px}
+.seg{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{flex:1;min-height:44px;border:0;background:none;padding:6px 8px;border-left:1px solid var(--line)}
+.seg button:first-child{border-left:0}
+.seg button[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.presets{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px}
+.pre{min-height:52px;text-align:left;padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface);font-weight:500}
+.pre[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.chk{display:flex;gap:12px;align-items:flex-start;min-height:44px}
+.chk input{width:22px;height:22px;margin:1px 0 0;accent-color:var(--accent);flex:none}
+.pv{padding:12px 14px;border-radius:10px;background:var(--accent-soft);color:var(--ink);display:flex;flex-direction:column;gap:2px}
+.pv b{font-weight:600}
+.stack{display:flex;flex-direction:column;gap:14px}
+
+.day.skipd .lb{color:var(--ink-2);font-style:italic}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{display:inline-flex;align-items:center;gap:2px;min-height:40px;padding:0 4px 0 14px;border:1px solid var(--line);border-radius:99px;background:var(--surface);font-weight:500}
+.chip button{border:0;background:none;min-width:36px;min-height:36px;font-size:20px;line-height:1;color:var(--ink-2);border-radius:99px}
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:5;background:var(--surface);border-top:1px solid var(--line);
+  padding:6px max(16px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.nav-in{display:flex;max-width:560px;margin:0 auto}
+.nav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;min-height:52px;border:0;background:none;color:var(--ink-2);font-size:12px;padding:6px 4px;border-radius:10px}
+.nav button[aria-current="page"]{color:var(--accent);font-weight:600}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+
+<div class="wrap">
+  <main id="view" class="view" aria-live="polite"></main>
+</div>
+<nav class="nav" aria-label="Разделы">
+  <div class="nav-in">
+    <button data-a="tab" data-v="today"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 6.5C10.5 5.3 8.5 4.8 5 4.8v13c3.5 0 5.5.5 7 1.7m0-13c1.5-1.2 3.5-1.7 7-1.7v13c-3.5 0-5.5.5-7 1.7m0-13v13"/></svg>Сегодня</button>
+    <button data-a="tab" data-v="sched"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5.5" width="16" height="14" rx="2"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/></svg>График</button>
+    <button data-a="tab" data-v="plan"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 8h9M18 8h1M5 16h1M10 16h9"/><circle cx="16" cy="8" r="2"/><circle cx="8" cy="16" r="2"/></svg>План</button>
+  </div>
+</nav>
+
+<script>
+/* ---------- Data and schedule logic (pure) ---------- */
+const BOOKS=[["Бытие",50],["Исход",40],["Левит",27],["Числа",36],["Второзаконие",34],["Иисус Навин",24],["Судьи",21],["Руфь",4],["1 Самуила",31],["2 Самуила",24],["1 Царей",22],["2 Царей",25],["1 Летопись",29],["2 Летопись",36],["Ездра",10],["Неемия",13],["Эсфирь",10],["Иов",42],["Псалмы",150],["Притчи",31],["Екклесиаст",12],["Песнь Соломона",8],["Исаия",66],["Иеремия",52],["Плач Иеремии",5],["Иезекииль",48],["Даниил",12],["Осия",14],["Иоиль",3],["Амос",9],["Авдий",1],["Иона",4],["Михей",7],["Наум",3],["Аввакум",3],["Софония",3],["Аггей",2],["Захария",14],["Малахия",4],["Матфея",28],["Марка",16],["Луки",24],["Иоанна",21],["Деяния",28],["Римлянам",16],["1 Коринфянам",16],["2 Коринфянам",13],["Галатам",6],["Ефесянам",6],["Филиппийцам",4],["Колоссянам",4],["1 Фессалоникийцам",5],["2 Фессалоникийцам",3],["1 Тимофею",6],["2 Тимофею",4],["Титу",3],["Филимону",1],["Евреям",13],["Иакова",5],["1 Петра",5],["2 Петра",3],["1 Иоанна",5],["2 Иоанна",1],["3 Иоанна",1],["Иуды",1],["Откровение",22]];
+const key=(b,c)=>b*1000+c;
+/* chapter length in words (public-domain English text with the same 1189-chapter numbering as the NWT); used only as a proxy for reading time */
+const WORDS=[797,632,696,638,504,579,586,588,661,496,611,542,461,612,471,419,680,870,1110,502,781,633,540,1838,713,897,1269,634,842,1035,1433,798,512,795,683,859,948,827,674,588,1411,984,945,886,736,775,971,648,770,694,457,665,791,892,595,757,698,937,984,904,326,1496,677,937,715,1062,480,762,702,564,901,795,829,492,926,937,558,1244,1346,972,439,1109,710,1007,823,892,738,832,1031,823,528,489,515,1160,724,892,1061,993,627,628,1115,262,1857,1716,920,1160,553,684,898,849,587,884,1223,554,1535,1247,960,1334,829,1294,1416,902,742,1939,687,722,891,1062,385,741,1181,1068,1341,339,1116,683,793,933,1205,744,661,448,1447,612,779,954,506,1216,1016,949,634,965,446,1265,1023,819,1508,924,645,843,566,965,606,951,1055,627,709,708,710,707,612,609,648,733,908,687,684,570,667,602,2075,855,665,1041,1310,806,321,574,771,566,707,551,907,929,1224,801,1399,719,492,837,489,1058,259,666,785,974,309,1033,1322,580,1045,976,693,848,765,756,1304,958,991,1674,474,1240,401,765,711,650,1111,391,1043,1118,1457,747,658,766,542,626,783,1110,562,735,441,762,515,542,993,867,505,773,700,1614,981,685,1733,860,701,1305,500,767,836,669,1458,857,386,835,422,961,353,714,925,1154,441,628,726,860,451,418,613,820,1000,1167,1126,1125,745,943,1103,1478,855,785,951,884,864,1513,1515,852,718,530,1019,1484,2140,834,843,1266,1044,1154,993,960,1038,681,1402,735,1495,910,1527,673,852,850,1370,976,1025,826,958,1209,1213,747,693,780,886,1099,661,1248,1231,1152,662,750,714,1492,590,990,689,857,350,863,670,1345,838,496,966,366,953,989,392,359,718,854,781,403,632,292,923,605,682,542,547,714,814,864,989,532,646,481,595,500,1403,751,541,884,561,489,484,644,448,518,483,461,1059,354,1153,625,447,795,939,977,725,245,899,1167,870,758,1084,780,1224,903,742,371,1007,551,772,586,782,866,993,617,925,392,722,903,716,637,602,1186,686,1328,654,799,930,962,724,822,566,529,498,484,349,659,991,93,644,388,435,337,446,483,395,342,544,403,338,399,413,410,549,376,262,342,476,522,522,482,280,482,90,206,373,457,405,514,693,376,527,615,255,496,402,659,477,361,507,442,130,207,139,165,245,159,327,166,367,351,129,147,107,149,99,206,311,918,272,144,247,584,119,179,343,183,340,201,179,231,499,241,350,347,564,223,702,361,270,401,240,280,130,451,331,204,143,229,337,401,322,165,152,110,435,225,230,218,339,211,134,228,194,184,267,327,111,698,671,102,472,370,423,413,189,193,330,1226,278,334,288,116,273,226,207,312,113,296,896,320,288,258,92,356,199,226,189,170,158,86,173,455,344,599,632,764,685,206,535,142,177,172,143,106,277,288,33,470,2423,88,110,124,94,121,108,94,110,102,119,116,60,277,70,44,330,353,166,172,411,239,204,151,253,302,331,178,299,206,143,85,519,309,541,419,354,548,411,562,288,528,525,478,403,574,545,547,477,387,508,499,502,495,566,580,523,460,464,528,428,641,467,380,735,517,380,535,301,618,518,556,405,273,372,330,351,289,363,397,283,295,362,759,568,587,209,864,366,700,566,599,928,519,134,577,857,267,417,428,255,730,169,417,679,469,592,381,550,405,814,743,1059,322,436,585,523,277,695,1134,593,269,797,804,677,711,887,780,342,471,628,867,366,771,405,387,493,399,361,569,521,593,665,380,366,538,308,755,815,528,1020,804,861,876,828,971,706,772,674,749,544,741,690,702,701,829,662,544,595,498,839,1190,361,1139,814,765,543,1005,719,1295,1437,849,826,658,1116,614,997,562,682,667,774,464,1229,152,822,215,1180,1181,1460,1856,1084,758,884,877,598,296,872,273,810,521,629,470,768,657,402,662,722,799,738,746,205,1821,774,924,356,1605,945,842,1323,774,509,727,907,809,714,762,680,1077,1073,958,404,1181,871,777,931,1531,802,568,907,1032,883,881,784,1050,596,1506,1008,1293,999,906,928,854,967,647,1530,411,358,679,156,466,369,254,398,330,470,428,308,312,426,232,509,958,571,456,441,405,433,662,400,477,415,549,670,520,215,261,332,454,400,354,476,448,442,584,402,372,519,423,566,489,558,468,598,454,680,622,317,296,367,338,424,379,703,537,408,503,462,337,757,488,547,566,183,473,620,388,557,1082,794,629,775,838,923,668,1170,1369,725,786,689,620,869,722,780,1127,834,835,1049,996,1628,1363,422,934,725,665,924,953,1326,808,844,1164,1222,778,1067,831,1595,914,449,1590,1099,1020,1025,951,1234,1213,1433,1459,992,1331,1410,867,812,726,757,810,870,1050,963,824,1399,1121,1055,1006,511,767,1099,1002,1508,1003,1311,876,823,1158,1062,828,733,615,789,636,950,1015,749,694,663,1024,636,865,1028,355,1435,885,1049,1112,672,667,1274,628,926,944,858,666,978,884,1072,773,927,640,723,784,1035,820,714,604,562,547,483,484,605,905,719,463,818,397,362,528,744,501,649,375,467,511,322,466,961,310,672,672,721,593,270,887,1167,446,592,402,390,407,488,357,452,568,355,442,718,590,316,455,574,651,610,448,354,509,453,411,618,564,470,632,602,483,468,657,503,457,364,254,479,295,396,415,291,381,351,432,247,324,310,473,461,438,508,297,425,339,265,294,431,338,472,362,404,321,425,608,387,679,784,924,696,501,545,528,378,369,485,598,550,551,481,301,488,582,485,247,737,536,480,520,299,295,609,593,804,658,348,435,540,491,398,592,354,580,497,538,652,252,567,522,747,634,477,751,573];
+const WIDX=(function(){const m={};let n=0;for(let b=1;b<=66;b++)for(let c=1;c<=BOOKS[b-1][1];c++)m[key(b,c)]=n++;return m})();
+const wOf=k=>WORDS[WIDX[k]]||0;
+const wSum=ks=>ks.reduce((a,k)=>a+wOf(k),0);
+const bookOf=k=>Math.floor(k/1000);
+const chOf=k=>k%1000;
+/* [book, from, to] in approximate order of events */
+const CHRONO=[[1,1,50],[18,1,42],[2,1,40],[3,1,27],[4,1,36],[5,1,34],[6,1,24],[7,1,21],[8,1,4],[9,1,31],[10,1,24],[13,1,29],[19,1,72],[11,1,11],[14,1,9],[22,1,8],[20,1,31],[21,1,12],[19,73,89],[11,12,22],[12,1,17],[14,10,28],[32,1,4],[29,1,3],[30,1,9],[28,1,14],[23,1,66],[33,1,7],[12,18,25],[14,29,36],[34,1,3],[36,1,3],[35,1,3],[24,1,52],[25,1,5],[31,1,1],[26,1,48],[27,1,12],[19,90,150],[15,1,10],[17,1,10],[37,1,2],[38,1,14],[16,1,13],[39,1,4],
+[40,1,28],[41,1,16],[42,1,24],[43,1,21],[44,1,12],[59,1,5],[44,13,14],[48,1,6],[44,15,17],[52,1,5],[53,1,3],[44,18,18],[46,1,16],[47,1,13],[44,19,20],[45,1,16],[44,21,28],[49,1,6],[50,1,4],[51,1,4],[57,1,1],[58,1,13],[60,1,5],[54,1,6],[56,1,3],[61,1,3],[55,1,4],[65,1,1],[62,1,5],[63,1,1],[64,1,1],[66,1,22]];
+const SCOPE_RANGE={all:[1,66],heb:[1,39],gr:[40,66]};
+const _seq={};
+function seqFor(scope,order){
+  const id=scope+'|'+order; if(_seq[id])return _seq[id];
+  const [lo,hi]=SCOPE_RANGE[scope]||SCOPE_RANGE.all; const out=[];
+  if(order==='chrono'){
+    for(const [b,a,z] of CHRONO){ if(b<lo||b>hi)continue; for(let c=a;c<=z;c++)out.push(key(b,c)); }
+  }else{
+    for(let b=lo;b<=hi;b++)for(let c=1;c<=BOOKS[b-1][1];c++)out.push(key(b,c));
+  }
+  return _seq[id]=out;
+}
+const pad=n=>String(n).padStart(2,'0');
+const ymd=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const parseD=s=>{const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d)};
+const todayStr=()=>ymd(new Date());
+const dayNum=s=>{const [y,m,d]=s.split('-').map(Number);return Math.round(Date.UTC(y,m-1,d)/86400000)};
+const diffDays=(a,b)=>dayNum(b)-dayNum(a);
+const addDays=(s,n)=>{const d=parseD(s);d.setDate(d.getDate()+n);return ymd(d)};
+const fmtD=(s,o)=>parseD(s).toLocaleDateString('ru-RU',o);
+const cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
+function pluralRu(n,f){n=Math.abs(n)%100;const n1=n%10;if(n>10&&n<20)return f[2];if(n1>1&&n1<5)return f[1];if(n1===1)return f[0];return f[2]}
+const chWord=n=>n+' '+pluralRu(n,['глава','главы','глав']);
+function title(k){const b=bookOf(k);return BOOKS[b-1][1]===1?BOOKS[b-1][0]:BOOKS[b-1][0]+' '+chOf(k)}
+function label(keys){
+  const parts=[];let i=0;
+  while(i<keys.length){
+    const b=bookOf(keys[i]);let j=i;
+    while(j+1<keys.length&&bookOf(keys[j+1])===b&&keys[j+1]===keys[j]+1)j++;
+    const c1=chOf(keys[i]),c2=chOf(keys[j]);const nm=BOOKS[b-1][0];
+    parts.push(BOOKS[b-1][1]===1?nm:nm+' '+(c1===c2?c1:c1+'–'+c2));
+    i=j+1;
+  }
+  return parts.join(' · ');
+}
+function mkPlan(d,paceOverride){
+  const seq=seqFor(d.scope,d.order);let i=seq.indexOf(d.startKey);if(i<0)i=0;
+  const days=Math.min(1200,Math.max(1,Math.round(d.days)||365));
+  const base=d.stretch?seq.length-i:seq.length;
+  const wbase=d.stretch?wSum(seq.slice(i)):wSum(seq);
+  return {wpd:wbase/days,scope:d.scope,order:d.order,days,stretch:!!d.stretch,startDate:d.startDate,startKey:seq[i],pace:paceOverride||base/days,skips:[...new Set((d.skips||[]).filter(x=>x>=d.startDate))].sort()};
+}
+/* skipped days: no new chapters are scheduled on these dates, later days move forward */
+function skipList(p){return Array.isArray(p.skips)?p.skips:[]}
+function isSkippedDay(p,date){return date>=p.startDate&&skipList(p).includes(date)}
+function dayIdx(p,date){
+  const raw=diffDays(p.startDate,date);if(raw<0)return raw;
+  let n=0;for(const s of new Set(skipList(p)))if(s>=p.startDate&&s<date)n++;
+  return raw-n;
+}
+function nthOpenDate(p,from,n){
+  let date=from,c=-1;
+  for(let g=0;g<6000;g++){if(!isSkippedDay(p,date))c++;if(c>=n)return date;date=addDays(date,1)}
+  return date;
+}
+function dateOfDay(p,k){return k<0?addDays(p.startDate,k):nthOpenDate(p,p.startDate,k)}
+function derive(plan){
+  const seq=seqFor(plan.scope,plan.order);let i=seq.indexOf(plan.startKey);if(i<0)i=0;
+  const R=seq.slice(i),n=R.length,pace=plan.pace;
+  const wts=R.map(wOf),Wr=wts.reduce((a,x)=>a+x,0);
+  const wpd=plan.wpd||pace*(wSum(seq)/seq.length);
+  const N=Math.max(1,Math.ceil(Wr/wpd-1e-6));
+  /* day boundaries: each chapter goes to the day that holds its midpoint, so days carry about the same amount of text; chapters are never split */
+  const B=new Array(N+1);B[0]=0;B[N]=n;
+  let j=0,cum=0;
+  for(let d=1;d<N;d++){
+    const target=d*Wr/N;
+    while(j<n&&cum+wts[j]/2<target){cum+=wts[j];j++}
+    B[d]=j;
+  }
+  if(n>=N){
+    for(let d=1;d<N;d++)B[d]=Math.max(B[d],B[d-1]+1);
+    for(let d=N-1;d>=0;d--)B[d]=Math.min(B[d],B[d+1]-1);
+  }else for(let d=1;d<N;d++)B[d]=Math.max(B[d],B[d-1]);
+  const totalDays=N;
+  const range=dd=>dd>=N?[n,n]:dd<0?[0,0]:[B[dd],B[dd+1]];
+  const unreadWeight=ks=>wSum(ks);
+  return {seq,R,pace,wpd:Wr/N,totalDays,range,unreadWeight,avg:n/N,endDate:dateOfDay(plan,totalDays-1)};
+}
+const SCOPE_NAME={all:'Вся Библия',heb:'Еврейские писания',gr:'Греческие писания'};
+function planName(p){
+  const du={1095:'за 3 года',730:'за 2 года',548:'за 1,5 года',365:'за год',270:'за 9 месяцев',180:'за 6 месяцев',90:'за 3 месяца',40:'за 40 дней'}[p.days]||('за '+p.days+' '+pluralRu(p.days,['день','дня','дней']));
+  return SCOPE_NAME[p.scope]+' '+du+(p.order==='chrono'?', хронологически':'');
+}
+const fmtPace=p=>(Math.round(p*10)/10).toString().replace('.',',');
+const PRESETS=[
+  {n:'Вся Библия за год',scope:'all',order:'canon',days:365},
+  {n:'Хронологически за год',scope:'all',order:'chrono',days:365},
+  {n:'Вся Библия за 1,5 года',scope:'all',order:'canon',days:548},
+  {n:'Вся Библия за 2 года',scope:'all',order:'canon',days:730},
+  {n:'Вся Библия за 3 года',scope:'all',order:'canon',days:1095},
+  {n:'Вся Библия за 9 месяцев',scope:'all',order:'canon',days:270},
+  {n:'Вся Библия за 6 месяцев',scope:'all',order:'canon',days:180},
+  {n:'Вся Библия за 3 месяца',scope:'all',order:'canon',days:90},
+  {n:'Греческие писания за 40 дней',scope:'gr',order:'canon',days:40}
+];
+function href(k,mode){
+  const ref=pad(bookOf(k))+String(chOf(k)).padStart(3,'0')+'001';
+  const q='wtlocale=U&pub=nwtsty&bible='+ref;
+  return mode==='app'?'jwlibrary:///finder?'+q:'https://www.jw.org/finder?'+q;
+}
+/*--UI--*/
+/* ---------- State ---------- */
+const $=s=>document.querySelector(s);
+const LS_KEY='bible-schedule-v1';
+function lsGet(){try{return JSON.parse(localStorage.getItem(LS_KEY))}catch(e){return null}}
+function lsSet(o){try{localStorage.setItem(LS_KEY,JSON.stringify(o))}catch(e){}}
+function validSaved(o){
+  const p=o&&o.plan;
+  return !!(p&&SCOPE_RANGE[p.scope]&&(p.order==='canon'||p.order==='chrono')&&typeof p.pace==='number'&&p.pace>0&&/^\d{4}-\d\d-\d\d$/.test(p.startDate)&&typeof p.startKey==='number'&&Array.isArray(o.read));
+}
+function adopt(o){return {savedAt:o.savedAt||0,isDefault:false,plan:Object.assign({},o.plan,{skips:[...new Set((Array.isArray(o.plan.skips)?o.plan.skips:[]).filter(s=>/^\d{4}-\d\d-\d\d$/.test(s)))].sort()}),read:new Set(o.read.filter(Number.isFinite)),link:o.link==='app'?'app':'web'}}
+function defaultState(){
+  return {savedAt:0,isDefault:true,read:new Set(),link:'web',
+    plan:mkPlan({scope:'all',order:'canon',days:365,stretch:false,startDate:todayStr(),startKey:key(1,1)})};
+}
+let S=(function(){const o=lsGet();return validSaved(o)?adopt(o):defaultState()})();
+function ser(){return {v:1,savedAt:S.savedAt,plan:S.plan,read:[...S.read].sort((a,b)=>a-b),link:S.link}}
+const remote={doc:null,timer:null,busy:false,dirty:false,on:false};
+function touch(){S.savedAt=Date.now();S.isDefault=false;lsSet(ser());scheduleRemote()}
+function scheduleRemote(){if(!remote.doc)return;clearTimeout(remote.timer);remote.timer=setTimeout(flush,900)}
+async function flush(){
+  if(remote.busy){remote.dirty=true;return}
+  remote.busy=true;
+  try{await remote.doc.set(ser())}catch(e){}
+  remote.busy=false;
+  if(remote.dirty){remote.dirty=false;scheduleRemote()}
+}
+async function initRemote(){
+  try{
+    if(!window.claude||!window.claude.use)return;
+    const [db,user]=await Promise.all([window.claude.use('db'),window.claude.use('user')]);
+    if(!db||!user)return;
+    const id=await user.id();if(!id)return;
+    remote.doc=db.doc('data/users/'+id+'/progress');
+    const snap=await remote.doc.get();
+    const d=snap.exists?snap.data():null;
+    remote.on=true;
+    if(d&&validSaved(d)&&(S.isDefault||(d.savedAt||0)>S.savedAt)){S=adopt(d);lsSet(ser());render()}
+    else if(!S.isDefault&&(!d||S.savedAt>(d.savedAt||0))){scheduleRemote();if(ui.tab==='plan')render()}
+    else if(ui.tab==='plan')render();
+  }catch(e){}
+}
+
+/* ---------- UI state ---------- */
+const ui={tab:'today',ahead:0,showAllCarried:false,openDay:null,draft:null,confirmReset:false,day:todayStr(),skipDate:'',skipMsg:'',remTime:(function(){try{return localStorage.getItem('bible-rem-time')||'20:00'}catch(e){return '20:00'}})()};
+const ICON_CHECK='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+const ICON_GO='<svg class="go" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"/></svg>';
+
+function chRow(k,tag){
+  const done=S.read.has(k),t=title(k);
+  return '<div class="ch'+(done?' is-done':'')+'">'+
+    '<button class="ck" data-a="toggle" data-k="'+k+'" aria-pressed="'+done+'" aria-label="'+(done?'Снять отметку: ':'Отметить прочитанным: ')+t+'"><i>'+ICON_CHECK+'</i></button>'+
+    '<a class="nm" href="'+href(k,S.link)+'" target="_blank" rel="noopener"><span class="t">'+t+'</span>'+(tag?'<span class="tag">'+tag+'</span>':'')+'</a>'+ICON_GO+'</div>';
+}
+
+/* ---------- Today ---------- */
+function model(){
+  const P=S.plan,D=derive(P),t=todayStr(),dd=dayIdx(P,t),skipped=isSkippedDay(P,t),vd=Math.max(0,dd);
+  const [f,to]=D.range(vd);
+  const carried=D.R.slice(0,f).filter(k=>!S.read.has(k));
+  const own=skipped?[]:D.R.slice(f,to);
+  let extra=[];
+  if(ui.ahead>0&&!skipped){const to2=D.range(vd+ui.ahead)[1];extra=D.R.slice(to,Math.max(to,to2))}
+  const readCount=D.R.reduce((n,k)=>n+(S.read.has(k)?1:0),0);
+  return {P,D,t,dd,vd,skipped,carried,own,extra,readCount,nextKey:D.R.find(k=>!S.read.has(k))};
+}
+function shelf(m){
+  const inPlan=new Set(m.D.R);const cnt={};
+  for(const k of m.D.R)if(S.read.has(k))cnt[bookOf(k)]=(cnt[bookOf(k)]||0)+1;
+  const curB=m.nextKey?bookOf(m.nextKey):0;
+  const planCnt={};for(const k of m.D.R)planCnt[bookOf(k)]=(planCnt[bookOf(k)]||0)+1;
+  const mk=(lo,hi)=>{let h='';for(let b=lo;b<=hi;b++){
+    const n=BOOKS[b-1][1],inP=planCnt[b]||0;
+    const fr=inP?(cnt[b]||0)/inP:0;
+    h+='<i class="sp'+(inP?'':' out')+(b===curB?' cur':'')+'" style="flex-grow:'+(n+8)+';--f:'+fr.toFixed(3)+'" title="'+BOOKS[b-1][0]+': '+(cnt[b]||0)+' из '+inP+'"></i>';
+  }return '<div class="spines" aria-hidden="true">'+h+'</div>'};
+  return '<div class="shelf"><div><div class="lbl">Еврейские писания</div>'+mk(1,39)+'</div><div><div class="lbl">Греческие писания</div>'+mk(40,66)+'</div></div>';
+}
+function todayView(){
+  const m=model(),P=m.P,D=m.D;
+  const d=new Date();
+  const complete=m.readCount===D.R.length;
+  let h='<header class="hd"><div class="eyebrow">'+fmtD(m.t,{weekday:'long'})+'</div><h1>'+fmtD(m.t,{day:'numeric',month:'long'})+'</h1><p class="planline">'+planName(P)+(m.skipped?' · пропуск':m.dd>=0&&m.dd<D.totalDays?' · день '+(m.dd+1)+' из '+D.totalDays:'')+'</p></header>';
+  if(m.dd<0){
+    h+='<div class="note"><p><b>План начнётся '+fmtD(P.startDate,{day:'numeric',month:'long'})+'.</b> Ниже чтение первого дня, его можно прочитать заранее.</p><div class="row"><button class="btn pri" data-a="startNow">Начать сегодня</button></div></div>';
+  }
+  if(m.skipped&&!complete){
+    h+='<div class="note ok"><p><b>Сегодня пропуск.</b> Новые главы не добавляются, график сдвинулся на день.</p><div class="row"><button class="btn" data-a="unskip" data-date="'+m.t+'">Вернуть день</button></div></div>';
+  }
+  const th=Math.max(6,Math.ceil(D.avg)*2);
+  if(!complete&&m.carried.length>th){
+    h+='<div class="note"><p><b>Накопилось '+chWord(m.carried.length)+'.</b> Их можно читать по частям или сдвинуть график: непрочитанное распределится заново, начиная с сегодняшнего дня.</p><div class="row"><button class="btn warn" data-a="rebase">Сдвинуть график</button></div></div>';
+  }
+  if(complete){
+    h+='<div class="note ok"><p><b>План выполнен.</b> Все '+chWord(D.R.length)+' прочитаны. Новый план можно составить на вкладке «План».</p></div>';
+  }else{
+    const shown=ui.showAllCarried?m.carried:m.carried.slice(0,12);
+    const rows=[];
+    shown.forEach(k=>rows.push(chRow(k,'перенесено')));
+    if(m.carried.length>shown.length)rows.push('<div class="foot"><button class="btn ghost" data-a="showCarried">Показать ещё '+(m.carried.length-shown.length)+' перенесённых</button></div>');
+    m.own.forEach(k=>rows.push(chRow(k)));
+    m.extra.forEach(k=>rows.push(chRow(k,'вперёд')));
+    const vis=shown.concat(m.own,m.extra);
+    const unreadVis=vis.filter(k=>!S.read.has(k)).length;
+    const nxt=D.range(m.vd+1+ui.ahead);const nextLbl=!m.skipped&&nxt[0]<nxt[1]?label(D.R.slice(nxt[0],nxt[1])):'';
+    h+='<section class="card" aria-label="Чтение на сегодня"><div class="cardhd"><h2>На сегодня</h2><span class="muted small">'+(vis.length?chWord(vis.length):'')+'</span></div>';
+    if(!vis.length)h+='<div class="foot"><p class="muted">'+(m.skipped?'Сегодня без новых глав.':'Сегодня чтение не запланировано.')+'</p></div>';
+    else h+=rows.join('');
+    h+='<div class="foot">'+(unreadVis?'<button class="btn pri" data-a="allToday">Отметить всё прочитанным</button>':(m.skipped?'':'<span class="tag ok">Всё прочитано</span>'))+(m.dd>=0&&nextLbl?'<button class="btn" data-a="ahead">Добавить: '+nextLbl+'</button>':'')+'</div>'+(!m.skipped&&m.dd>=0&&m.dd<D.totalDays?'<div class="foot"><button class="btn ghost" data-a="skipToday">Пропустить сегодня</button></div>':'')+'</section>';
+  }
+  const pct=D.R.length?Math.round(m.readCount/D.R.length*100):0;
+  const unreadAll=D.R.length-m.readCount;
+  let fin='По графику закончите '+fmtD(D.endDate,{day:'numeric',month:'long',year:'numeric'})+'.';
+  if(m.dd>=0&&m.carried.length&&!complete){
+    const proj=nthOpenDate(P,m.t,Math.max(0,Math.ceil(D.unreadWeight(D.R.filter(k=>!S.read.has(k)))/D.wpd-1e-9)-1));
+    if(diffDays(D.endDate,proj)>0)fin+=' С учётом переносов: около '+fmtD(proj,{day:'numeric',month:'long',year:'numeric'})+'.';
+  }
+  h+='<section class="card pad stack" aria-label="Прогресс"><div class="stat"><span><b>'+m.readCount+'</b> <span class="muted">из '+D.R.length+' глав</span></span><b>'+pct+'%</b></div><div class="bar" role="progressbar" aria-valuenow="'+pct+'" aria-valuemin="0" aria-valuemax="100"><i style="width:'+pct+'%"></i></div>'+
+    (m.nextKey?'<p class="small muted">Следующая глава: <b style="color:var(--ink)">'+title(m.nextKey)+'</b></p>':'')+shelf(m)+'<p class="small muted">'+fin+'</p></section>';
+  return h;
+}
+
+/* ---------- Schedule ---------- */
+function schedView(){
+  const m=model(),P=m.P,D=m.D;
+  let h='<header class="hd"><div class="eyebrow">График</div><h1>'+planName(P)+'</h1><p class="planline">'+fmtD(P.startDate,{day:'numeric',month:'long',year:'numeric'})+' — '+fmtD(D.endDate,{day:'numeric',month:'long',year:'numeric'})+' · '+fmtPace(D.avg)+' гл. в день</p></header>';
+  let curMonth='',open='',cardOpen=false;
+  const closeCard=()=>{if(cardOpen){h+='</section>';cardOpen=false}};
+  let dd=0;
+  for(let date=P.startDate,guard=0;date<=D.endDate&&guard<8000;date=addDays(date,1),guard++){
+    const mo=cap(fmtD(date,{month:'long'}))+' '+date.slice(0,4);
+    const sk=isSkippedDay(P,date);
+    let keys=[],f=0,to=0;
+    if(!sk){[f,to]=D.range(dd);if(f>=to){dd++;continue};keys=D.R.slice(f,to)}
+    if(mo!==curMonth){closeCard();h+='<h3 class="mo">'+mo+'</h3><section class="card">';cardOpen=true;curMonth=mo}
+    const isOpen=ui.openDay===date,isToday=date===m.t,past=date<m.t,canSkip=date>=m.t;
+    const dateBox='<span class="dd"><b>'+date.slice(8)*1+'</b><span>'+fmtD(date,{weekday:'short'})+'</span></span>';
+    if(sk){
+      h+='<div class="dw"><button class="day skipd'+(isToday?' today':'')+'"'+(isToday?' id="d-today"':'')+' data-a="openDay" data-dd="'+date+'" aria-expanded="'+isOpen+'">'+dateBox+'<span class="lb">Пропуск</span><span class="st">'+(isToday?'<span class="tag now">сегодня</span>':'')+'</span></button>';
+      if(isOpen)h+='<div class="dayx"><p class="small muted">В этот день новые главы не добавляются.</p><div class="foot"><button class="btn" data-a="unskip" data-date="'+date+'">Вернуть день</button></div></div>';
+      h+='</div>';continue;
+    }
+    const rc=keys.filter(k=>S.read.has(k)).length;
+    const all=rc===keys.length;
+    let st='',cls='';
+    if(all){st=ICON_CHECK;cls=' done'}
+    else if(isToday)st=(rc?'<span class="small" style="margin-right:8px">'+rc+'/'+keys.length+'</span>':'')+'<span class="tag now">сегодня</span>';
+    else if(past)st=(rc?'<span class="small" style="margin-right:8px;color:var(--carry)">'+rc+'/'+keys.length+'</span>':'')+'<span class="tag">не прочитано</span>';
+    else st=rc?'<span class="small">'+rc+'/'+keys.length+'</span>':'';
+    h+='<div class="dw"><button class="day'+cls+(isToday?' today':'')+'"'+(isToday?' id="d-today"':'')+' data-a="openDay" data-dd="'+date+'" aria-expanded="'+isOpen+'">'+dateBox+'<span class="lb">'+label(keys)+'</span><span class="st">'+st+'</span></button>';
+    if(isOpen){
+      h+='<div class="dayx">'+keys.map(k=>chRow(k)).join('')+((all&&!canSkip)?'':'<div class="foot">'+(all?'':'<button class="btn pri" data-a="dayAll" data-dd="'+dd+'">Отметить день прочитанным</button>')+(canSkip?'<button class="btn ghost" data-a="skipDay" data-date="'+date+'">Пропустить этот день</button>':'')+'</div>')+'</div>';
+    }
+    h+='</div>';
+    dd++;
+  }
+  closeCard();
+  return h;
+}
+
+/* ---------- Plan ---------- */
+function draftFromPlan(){
+  const m=model();const P=S.plan;
+  const started=m.dd>=0;
+  const seq=seqFor(P.scope,P.order);
+  return {scope:P.scope,order:P.order,days:P.days,stretch:P.stretch,
+    startDate:started?todayStr():P.startDate,
+    startKey:m.nextKey||P.startKey,keepRead:true,skips:skipList(P).filter(x=>x>=(started?todayStr():P.startDate))};
+}
+function pvHtml(){
+  const d=ui.draft,p=mkPlan(d),D=derive(p);
+  const f=D.range(0);
+  return '<span><b>≈ '+fmtPace(D.avg)+' гл. в день</b> · '+chWord(D.R.length)+' в плане</span>'+
+    '<span class="muted">Дни разделены по объёму текста, чтобы чтение занимало примерно одинаковое время. Главы не разрываются.</span>'+
+    '<span>Закончите '+fmtD(D.endDate,{day:'numeric',month:'long',year:'numeric'})+'</span>'+
+    '<span class="muted">Первый день: '+(f[0]<f[1]?label(D.R.slice(f[0],f[1])):'—')+'</span>';
+}
+function updatePreview(){const el=$('#pv');if(el)el.innerHTML=pvHtml()}
+function planView(){
+  const d=ui.draft;const seq=seqFor(d.scope,d.order);
+  if(seq.indexOf(d.startKey)<0)d.startKey=seq[0];
+  const b=bookOf(d.startKey),c=chOf(d.startKey);
+  const books=[...new Set(seq.map(bookOf))].sort((x,y)=>x-y);
+  const seg=(act,cur,items)=>'<div class="seg" role="group">'+items.map(([v,l])=>'<button data-a="'+act+'" data-v="'+v+'" aria-pressed="'+(cur===v)+'">'+l+'</button>').join('')+'</div>';
+  let h='<header class="hd"><div class="eyebrow">Настройки</div><h1>План чтения</h1><p class="planline">Сейчас: '+planName(S.plan)+'</p></header>';
+  h+='<section class="card pad stack"><div class="fld"><span class="lab">Быстрый выбор</span><div class="presets">'+
+    PRESETS.map((p,i)=>'<button class="pre" data-a="preset" data-i="'+i+'" aria-pressed="'+(p.scope===d.scope&&p.order===d.order&&p.days===d.days)+'">'+p.n+'</button>').join('')+'</div></div>'+
+    '<div class="fld"><span class="lab">Что читать</span>'+seg('scope',d.scope,[['all','Вся Библия'],['heb','Еврейские'],['gr','Греческие']])+'</div>'+
+    '<div class="fld"><span class="lab">Порядок</span>'+seg('order',d.order,[['canon','По порядку книг'],['chrono','Хронологический']])+
+    (d.order==='chrono'?'<p class="small muted">Порядок приближённый: книги расставлены по времени событий, псалмы вставлены блоками.</p>':'')+'</div>'+
+    '<div class="fld"><label for="f-days">Срок, дней</label><input class="inp" id="f-days" type="number" inputmode="numeric" min="1" max="1200" value="'+d.days+'"></div>'+
+    '<div class="fld"><label for="f-date">Дата начала</label><input class="inp" id="f-date" type="date" value="'+d.startDate+'"></div>'+
+    '<div class="fld"><label for="f-book">Начать с книги и главы</label><div class="two"><select class="inp" id="f-book">'+
+      books.map(x=>'<option value="'+x+'"'+(x===b?' selected':'')+'>'+BOOKS[x-1][0]+'</option>').join('')+'</select>'+
+      '<select class="inp" id="f-ch" aria-label="Глава">'+Array.from({length:BOOKS[b-1][1]},(_,i)=>'<option value="'+(i+1)+'"'+(i+1===c?' selected':'')+'>'+(i+1)+'</option>').join('')+'</select></div>'+
+      '<p class="small muted">По умолчанию предложена первая непрочитанная глава.</p></div>'+
+    '<label class="chk"><input id="f-stretch" type="checkbox"'+(d.stretch?' checked':'')+'><span>Уложить оставшиеся главы во весь срок<br><span class="small muted">Если выключено, темп считается от всего объёма, и план закончится раньше.</span></span></label>'+
+    '<label class="chk"><input id="f-keep" type="checkbox"'+(d.keepRead?' checked':'')+'><span>Сохранить отметки о прочитанном</span></label>'+
+    '<div class="pv" id="pv">'+pvHtml()+'</div>'+
+    '<div class="row"><button class="btn pri" data-a="save">Сохранить план</button></div></section>';
+  const fut=skipList(S.plan).filter(x=>x>=todayStr());
+  h+='<section class="card pad stack"><h2>Пропущенные дни</h2><p class="small muted">В эти дни главы не прибавляются, график сдвигается на следующий день.</p>'+
+    (fut.length?'<div class="chips">'+fut.map(x=>'<span class="chip">'+fmtD(x,{day:'numeric',month:'short'})+'<button data-a="unskip" data-date="'+x+'" aria-label="Вернуть день '+x+'">×</button></span>').join('')+'</div>':'<p class="small muted">Пока нет.</p>')+
+    '<div class="fld"><label for="f-skip">Добавить день</label><div class="two"><input class="inp" id="f-skip" type="date" value="'+ui.skipDate+'" min="'+todayStr()+'"><button class="btn" data-a="addSkip">Пропустить</button></div>'+(ui.skipMsg?'<p class="small" style="color:var(--carry)">'+ui.skipMsg+'</p>':'')+'</div></section>';
+  h+='<section class="card pad stack"><h2>Напоминание</h2><p class="small muted">Ежедневное событие в Календаре устройства с уведомлением. Время задаётся на каждом устройстве отдельно.</p>'+
+    '<div class="fld"><label for="f-rem">Время</label><div class="two"><input class="inp" id="f-rem" type="time" value="'+ui.remTime+'"><button class="btn" data-a="remind">Добавить в Календарь</button></div></div></section>';
+  h+='<section class="card pad stack"><h2>Ссылки на Библию</h2><p class="small muted">Главы открываются в Священном Писании в переводе «Новый мир» (учебное издание) на русском языке.</p>'+
+    seg('link',S.link,[['web','Через jw.org'],['app','Напрямую в приложение']])+
+    '<p class="small muted">Обычная ссылка открывает JW Library, если приложение установлено. Если вместо него открывается браузер, включите прямую ссылку.</p></section>';
+  h+='<section class="card pad stack"><h2>Данные</h2><p class="small muted">'+(remote.on?'Прогресс сохраняется в вашей учётной записи и доступен на других устройствах.':'Прогресс хранится только на этом устройстве.')+'</p>'+
+    (ui.confirmReset?'<div class="row"><button class="btn warn" data-a="resetDo">Да, снять все отметки</button><button class="btn" data-a="resetNo">Отмена</button></div>':'<div class="row"><button class="btn" data-a="resetAsk">Снять все отметки о прочитанном</button></div>')+'</section>';
+  return h;
+}
+
+/* ---------- Render and events ---------- */
+function render(tabChange){
+  const y=window.scrollY;
+  $('#view').innerHTML=ui.tab==='today'?todayView():ui.tab==='sched'?schedView():planView();
+  document.querySelectorAll('.nav button').forEach(b=>b.setAttribute('aria-current',b.dataset.v===ui.tab?'page':'false'));
+  if(tabChange){const el=ui.tab==='sched'?$('#d-today'):null;if(el)el.scrollIntoView({block:'center'});else window.scrollTo(0,0)}
+  else window.scrollTo(0,y);
+}
+function setSkip(date,on){
+  const set=new Set(skipList(S.plan));if(on)set.add(date);else set.delete(date);
+  S.plan=Object.assign({},S.plan,{skips:[...set].sort()});
+  ui.ahead=0;touch();render();
+}
+function makeIcs(time){
+  const [hh,mm]=time.split(':').map(Number),now=new Date();
+  let d=todayStr();if(hh*60+mm<=now.getHours()*60+now.getMinutes())d=addDays(d,1);
+  const z=n=>String(n).padStart(2,'0'),ds=d.replace(/-/g,'')+'T'+z(hh)+z(mm)+'00';
+  const url=location.href.split('#')[0].replace(/^blob:|^file:.*/,'');
+  return ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Bible schedule//RU','CALSCALE:GREGORIAN','BEGIN:VEVENT',
+    'UID:bible-reading-'+z(hh)+z(mm)+'@schedule','DTSTAMP:'+new Date().toISOString().replace(/[-:]/g,'').slice(0,15)+'Z',
+    'DTSTART:'+ds,'DURATION:PT15M','RRULE:FREQ=DAILY','SUMMARY:Чтение Библии','DESCRIPTION:Откройте график чтения.'+(url?' '+url:''),
+    url?'URL:'+url:'','BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:Чтение Библии','TRIGGER:PT0S','END:VALARM','END:VEVENT','END:VCALENDAR'].filter(Boolean).join('\r\n')+'\r\n';
+}
+const A={
+  tab(t){ui.tab=t.dataset.v;ui.openDay=null;ui.confirmReset=false;if(ui.tab==='plan')ui.draft=draftFromPlan();render(true)},
+  toggle(t){const k=+t.dataset.k;if(S.read.has(k))S.read.delete(k);else S.read.add(k);touch();render()},
+  allToday(){const m=model();m.carried.concat(m.own,m.extra).forEach(k=>S.read.add(k));touch();render()},
+  ahead(){ui.ahead++;render()},
+  showCarried(){ui.showAllCarried=true;render()},
+  startNow(){S.plan=Object.assign({},S.plan,{startDate:todayStr()});touch();render()},
+  rebase(){const m=model();if(!m.nextKey)return;S.plan=Object.assign({},S.plan,{startKey:m.nextKey,startDate:todayStr()});ui.ahead=0;ui.showAllCarried=false;touch();render()},
+  openDay(t){const k=t.dataset.dd;ui.openDay=ui.openDay===k?null:k;render()},
+  remind(){
+    const v=ui.remTime||'20:00';try{localStorage.setItem('bible-rem-time',v)}catch(e){}
+    const blob=new Blob([makeIcs(v)],{type:'text/calendar;charset=utf-8'}),u=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=u;a.download='chtenie-biblii.ics';document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(u),4000);
+  },
+  skipToday(){setSkip(todayStr(),true)},
+  skipDay(t){setSkip(t.dataset.date,true)},
+  unskip(t){setSkip(t.dataset.date,false)},
+  addSkip(){const v=ui.skipDate;if(!/^\d{4}-\d\d-\d\d$/.test(v)){ui.skipMsg='Выберите дату';render();return}if(v<todayStr()){ui.skipMsg='Можно пропускать только сегодняшний и будущие дни';render();return}ui.skipMsg='';ui.skipDate='';setSkip(v,true)},
+  dayAll(t){const m=model(),[f,to]=m.D.range(+t.dataset.dd);m.D.R.slice(f,to).forEach(k=>S.read.add(k));touch();render()},
+  preset(t){const p=PRESETS[+t.dataset.i];Object.assign(ui.draft,{scope:p.scope,order:p.order,days:p.days});render()},
+  scope(t){ui.draft.scope=t.dataset.v;render()},
+  order(t){ui.draft.order=t.dataset.v;render()},
+  link(t){S.link=t.dataset.v==='app'?'app':'web';touch();render()},
+  save(){
+    const d=ui.draft;if(!/^\d{4}-\d\d-\d\d$/.test(d.startDate))d.startDate=todayStr();
+    S.plan=mkPlan(d);if(!d.keepRead)S.read=new Set();
+    ui.ahead=0;ui.showAllCarried=false;ui.openDay=null;touch();ui.tab='today';render(true);
+  },
+  resetAsk(){ui.confirmReset=true;render()},
+  resetNo(){ui.confirmReset=false;render()},
+  resetDo(){S.read=new Set();ui.confirmReset=false;touch();render()}
+};
+document.addEventListener('click',e=>{
+  const t=e.target.closest('[data-a]');
+  if(!t)return;const f=A[t.dataset.a];if(f){e.preventDefault();f(t)}
+});
+document.addEventListener('input',e=>{
+  const t=e.target;
+  if(t.id==='f-days'){const v=parseInt(t.value,10);if(v>=1&&v<=1200){ui.draft.days=v;updatePreview()}}
+});
+document.addEventListener('change',e=>{
+  const t=e.target;if(!ui.draft)return;
+  if(t.id==='f-date'){if(t.value){ui.draft.startDate=t.value;updatePreview()}}
+  else if(t.id==='f-book'){ui.draft.startKey=key(+t.value,1);render()}
+  else if(t.id==='f-ch'){ui.draft.startKey=key(bookOf(ui.draft.startKey),+t.value);updatePreview()}
+  else if(t.id==='f-stretch'){ui.draft.stretch=t.checked;updatePreview()}
+  else if(t.id==='f-keep'){ui.draft.keepRead=t.checked}
+  else if(t.id==='f-rem'){if(t.value)ui.remTime=t.value}
+  else if(t.id==='f-skip'){ui.skipDate=t.value;ui.skipMsg=''}
+});
+document.addEventListener('visibilitychange',()=>{
+  if(!document.hidden&&todayStr()!==ui.day){ui.day=todayStr();ui.ahead=0;if(ui.tab!=='plan')render()}
+});
+render(true);
+initRemote();
+
+if('serviceWorker' in navigator&&location.protocol.startsWith('http'))addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+</script>
+
+</html>

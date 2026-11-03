@@ -157,6 +157,11 @@ p{margin:0}
 /* ---------- Data and schedule logic (pure) ---------- */
 const BOOKS=[["Бытие",50],["Исход",40],["Левит",27],["Числа",36],["Второзаконие",34],["Иисус Навин",24],["Судьи",21],["Руфь",4],["1 Самуила",31],["2 Самуила",24],["1 Царей",22],["2 Царей",25],["1 Летопись",29],["2 Летопись",36],["Ездра",10],["Неемия",13],["Эсфирь",10],["Иов",42],["Псалмы",150],["Притчи",31],["Екклесиаст",12],["Песнь Соломона",8],["Исаия",66],["Иеремия",52],["Плач Иеремии",5],["Иезекииль",48],["Даниил",12],["Осия",14],["Иоиль",3],["Амос",9],["Авдий",1],["Иона",4],["Михей",7],["Наум",3],["Аввакум",3],["Софония",3],["Аггей",2],["Захария",14],["Малахия",4],["Матфея",28],["Марка",16],["Луки",24],["Иоанна",21],["Деяния",28],["Римлянам",16],["1 Коринфянам",16],["2 Коринфянам",13],["Галатам",6],["Ефесянам",6],["Филиппийцам",4],["Колоссянам",4],["1 Фессалоникийцам",5],["2 Фессалоникийцам",3],["1 Тимофею",6],["2 Тимофею",4],["Титу",3],["Филимону",1],["Евреям",13],["Иакова",5],["1 Петра",5],["2 Петра",3],["1 Иоанна",5],["2 Иоанна",1],["3 Иоанна",1],["Иуды",1],["Откровение",22]];
 const key=(b,c)=>b*1000+c;
+/* chapter length in words (public-domain English text with the same 1189-chapter numbering as the NWT); used only as a proxy for reading time */
+const WORDS=[797,632,696,638,504,579,586,588,661,496,611,542,461,612,471,419,680,870,1110,502,781,633,540,1838,713,897,1269,634,842,1035,1433,798,512,795,683,859,948,827,674,588,1411,984,945,886,736,775,971,648,770,694,457,665,791,892,595,757,698,937,984,904,326,1496,677,937,715,1062,480,762,702,564,901,795,829,492,926,937,558,1244,1346,972,439,1109,710,1007,823,892,738,832,1031,823,528,489,515,1160,724,892,1061,993,627,628,1115,262,1857,1716,920,1160,553,684,898,849,587,884,1223,554,1535,1247,960,1334,829,1294,1416,902,742,1939,687,722,891,1062,385,741,1181,1068,1341,339,1116,683,793,933,1205,744,661,448,1447,612,779,954,506,1216,1016,949,634,965,446,1265,1023,819,1508,924,645,843,566,965,606,951,1055,627,709,708,710,707,612,609,648,733,908,687,684,570,667,602,2075,855,665,1041,1310,806,321,574,771,566,707,551,907,929,1224,801,1399,719,492,837,489,1058,259,666,785,974,309,1033,1322,580,1045,976,693,848,765,756,1304,958,991,1674,474,1240,401,765,711,650,1111,391,1043,1118,1457,747,658,766,542,626,783,1110,562,735,441,762,515,542,993,867,505,773,700,1614,981,685,1733,860,701,1305,500,767,836,669,1458,857,386,835,422,961,353,714,925,1154,441,628,726,860,451,418,613,820,1000,1167,1126,1125,745,943,1103,1478,855,785,951,884,864,1513,1515,852,718,530,1019,1484,2140,834,843,1266,1044,1154,993,960,1038,681,1402,735,1495,910,1527,673,852,850,1370,976,1025,826,958,1209,1213,747,693,780,886,1099,661,1248,1231,1152,662,750,714,1492,590,990,689,857,350,863,670,1345,838,496,966,366,953,989,392,359,718,854,781,403,632,292,923,605,682,542,547,714,814,864,989,532,646,481,595,500,1403,751,541,884,561,489,484,644,448,518,483,461,1059,354,1153,625,447,795,939,977,725,245,899,1167,870,758,1084,780,1224,903,742,371,1007,551,772,586,782,866,993,617,925,392,722,903,716,637,602,1186,686,1328,654,799,930,962,724,822,566,529,498,484,349,659,991,93,644,388,435,337,446,483,395,342,544,403,338,399,413,410,549,376,262,342,476,522,522,482,280,482,90,206,373,457,405,514,693,376,527,615,255,496,402,659,477,361,507,442,130,207,139,165,245,159,327,166,367,351,129,147,107,149,99,206,311,918,272,144,247,584,119,179,343,183,340,201,179,231,499,241,350,347,564,223,702,361,270,401,240,280,130,451,331,204,143,229,337,401,322,165,152,110,435,225,230,218,339,211,134,228,194,184,267,327,111,698,671,102,472,370,423,413,189,193,330,1226,278,334,288,116,273,226,207,312,113,296,896,320,288,258,92,356,199,226,189,170,158,86,173,455,344,599,632,764,685,206,535,142,177,172,143,106,277,288,33,470,2423,88,110,124,94,121,108,94,110,102,119,116,60,277,70,44,330,353,166,172,411,239,204,151,253,302,331,178,299,206,143,85,519,309,541,419,354,548,411,562,288,528,525,478,403,574,545,547,477,387,508,499,502,495,566,580,523,460,464,528,428,641,467,380,735,517,380,535,301,618,518,556,405,273,372,330,351,289,363,397,283,295,362,759,568,587,209,864,366,700,566,599,928,519,134,577,857,267,417,428,255,730,169,417,679,469,592,381,550,405,814,743,1059,322,436,585,523,277,695,1134,593,269,797,804,677,711,887,780,342,471,628,867,366,771,405,387,493,399,361,569,521,593,665,380,366,538,308,755,815,528,1020,804,861,876,828,971,706,772,674,749,544,741,690,702,701,829,662,544,595,498,839,1190,361,1139,814,765,543,1005,719,1295,1437,849,826,658,1116,614,997,562,682,667,774,464,1229,152,822,215,1180,1181,1460,1856,1084,758,884,877,598,296,872,273,810,521,629,470,768,657,402,662,722,799,738,746,205,1821,774,924,356,1605,945,842,1323,774,509,727,907,809,714,762,680,1077,1073,958,404,1181,871,777,931,1531,802,568,907,1032,883,881,784,1050,596,1506,1008,1293,999,906,928,854,967,647,1530,411,358,679,156,466,369,254,398,330,470,428,308,312,426,232,509,958,571,456,441,405,433,662,400,477,415,549,670,520,215,261,332,454,400,354,476,448,442,584,402,372,519,423,566,489,558,468,598,454,680,622,317,296,367,338,424,379,703,537,408,503,462,337,757,488,547,566,183,473,620,388,557,1082,794,629,775,838,923,668,1170,1369,725,786,689,620,869,722,780,1127,834,835,1049,996,1628,1363,422,934,725,665,924,953,1326,808,844,1164,1222,778,1067,831,1595,914,449,1590,1099,1020,1025,951,1234,1213,1433,1459,992,1331,1410,867,812,726,757,810,870,1050,963,824,1399,1121,1055,1006,511,767,1099,1002,1508,1003,1311,876,823,1158,1062,828,733,615,789,636,950,1015,749,694,663,1024,636,865,1028,355,1435,885,1049,1112,672,667,1274,628,926,944,858,666,978,884,1072,773,927,640,723,784,1035,820,714,604,562,547,483,484,605,905,719,463,818,397,362,528,744,501,649,375,467,511,322,466,961,310,672,672,721,593,270,887,1167,446,592,402,390,407,488,357,452,568,355,442,718,590,316,455,574,651,610,448,354,509,453,411,618,564,470,632,602,483,468,657,503,457,364,254,479,295,396,415,291,381,351,432,247,324,310,473,461,438,508,297,425,339,265,294,431,338,472,362,404,321,425,608,387,679,784,924,696,501,545,528,378,369,485,598,550,551,481,301,488,582,485,247,737,536,480,520,299,295,609,593,804,658,348,435,540,491,398,592,354,580,497,538,652,252,567,522,747,634,477,751,573];
+const WIDX=(function(){const m={};let n=0;for(let b=1;b<=66;b++)for(let c=1;c<=BOOKS[b-1][1];c++)m[key(b,c)]=n++;return m})();
+const wOf=k=>WORDS[WIDX[k]]||0;
+const wSum=ks=>ks.reduce((a,k)=>a+wOf(k),0);
 const bookOf=k=>Math.floor(k/1000);
 const chOf=k=>k%1000;
 /* [book, from, to] in approximate order of events */
@@ -201,7 +206,8 @@ function mkPlan(d,paceOverride){
   const seq=seqFor(d.scope,d.order);let i=seq.indexOf(d.startKey);if(i<0)i=0;
   const days=Math.min(1200,Math.max(1,Math.round(d.days)||365));
   const base=d.stretch?seq.length-i:seq.length;
-  return {scope:d.scope,order:d.order,days,stretch:!!d.stretch,startDate:d.startDate,startKey:seq[i],pace:paceOverride||base/days,skips:[...new Set((d.skips||[]).filter(x=>x>=d.startDate))].sort()};
+  const wbase=d.stretch?wSum(seq.slice(i)):wSum(seq);
+  return {wpd:wbase/days,scope:d.scope,order:d.order,days,stretch:!!d.stretch,startDate:d.startDate,startKey:seq[i],pace:paceOverride||base/days,skips:[...new Set((d.skips||[]).filter(x=>x>=d.startDate))].sort()};
 }
 /* skipped days: no new chapters are scheduled on these dates, later days move forward */
 function skipList(p){return Array.isArray(p.skips)?p.skips:[]}
@@ -219,14 +225,26 @@ function nthOpenDate(p,from,n){
 function dateOfDay(p,k){return k<0?addDays(p.startDate,k):nthOpenDate(p,p.startDate,k)}
 function derive(plan){
   const seq=seqFor(plan.scope,plan.order);let i=seq.indexOf(plan.startKey);if(i<0)i=0;
-  const R=seq.slice(i),pace=plan.pace;
-  const totalDays=Math.max(1,Math.ceil(R.length/pace-1e-9));
-  const range=dd=>{
-    const from=Math.min(R.length,Math.floor(dd*pace+1e-9));
-    const to=dd>=totalDays-1?R.length:Math.min(R.length,Math.floor((dd+1)*pace+1e-9));
-    return [from,Math.max(from,to)];
-  };
-  return {seq,R,pace,totalDays,range,endDate:dateOfDay(plan,totalDays-1)};
+  const R=seq.slice(i),n=R.length,pace=plan.pace;
+  const wts=R.map(wOf),Wr=wts.reduce((a,x)=>a+x,0);
+  const wpd=plan.wpd||pace*(wSum(seq)/seq.length);
+  const N=Math.max(1,Math.ceil(Wr/wpd-1e-6));
+  /* day boundaries: each chapter goes to the day that holds its midpoint, so days carry about the same amount of text; chapters are never split */
+  const B=new Array(N+1);B[0]=0;B[N]=n;
+  let j=0,cum=0;
+  for(let d=1;d<N;d++){
+    const target=d*Wr/N;
+    while(j<n&&cum+wts[j]/2<target){cum+=wts[j];j++}
+    B[d]=j;
+  }
+  if(n>=N){
+    for(let d=1;d<N;d++)B[d]=Math.max(B[d],B[d-1]+1);
+    for(let d=N-1;d>=0;d--)B[d]=Math.min(B[d],B[d+1]-1);
+  }else for(let d=1;d<N;d++)B[d]=Math.max(B[d],B[d-1]);
+  const totalDays=N;
+  const range=dd=>dd>=N?[n,n]:dd<0?[0,0]:[B[dd],B[dd+1]];
+  const unreadWeight=ks=>wSum(ks);
+  return {seq,R,pace,wpd:Wr/N,totalDays,range,unreadWeight,avg:n/N,endDate:dateOfDay(plan,totalDays-1)};
 }
 const SCOPE_NAME={all:'Вся Библия',heb:'Еврейские писания',gr:'Греческие писания'};
 function planName(p){
@@ -294,7 +312,7 @@ async function initRemote(){
 }
 
 /* ---------- UI state ---------- */
-const ui={tab:'today',ahead:0,showAllCarried:false,openDay:null,draft:null,confirmReset:false,day:todayStr(),skipDate:'',skipMsg:''};
+const ui={tab:'today',ahead:0,showAllCarried:false,openDay:null,draft:null,confirmReset:false,day:todayStr(),skipDate:'',skipMsg:'',remTime:(function(){try{return localStorage.getItem('bible-rem-time')||'20:00'}catch(e){return '20:00'}})()};
 const ICON_CHECK='<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
 const ICON_GO='<svg class="go" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8"/></svg>';
 
@@ -339,7 +357,7 @@ function todayView(){
   if(m.skipped&&!complete){
     h+='<div class="note ok"><p><b>Сегодня пропуск.</b> Новые главы не добавляются, график сдвинулся на день.</p><div class="row"><button class="btn" data-a="unskip" data-date="'+m.t+'">Вернуть день</button></div></div>';
   }
-  const th=Math.max(6,Math.ceil(P.pace)*2);
+  const th=Math.max(6,Math.ceil(D.avg)*2);
   if(!complete&&m.carried.length>th){
     h+='<div class="note"><p><b>Накопилось '+chWord(m.carried.length)+'.</b> Их можно читать по частям или сдвинуть график: непрочитанное распределится заново, начиная с сегодняшнего дня.</p><div class="row"><button class="btn warn" data-a="rebase">Сдвинуть график</button></div></div>';
   }
@@ -364,7 +382,7 @@ function todayView(){
   const unreadAll=D.R.length-m.readCount;
   let fin='По графику закончите '+fmtD(D.endDate,{day:'numeric',month:'long',year:'numeric'})+'.';
   if(m.dd>=0&&m.carried.length&&!complete){
-    const proj=nthOpenDate(P,m.t,Math.max(0,Math.ceil(unreadAll/P.pace-1e-9)-1));
+    const proj=nthOpenDate(P,m.t,Math.max(0,Math.ceil(D.unreadWeight(D.R.filter(k=>!S.read.has(k)))/D.wpd-1e-9)-1));
     if(diffDays(D.endDate,proj)>0)fin+=' С учётом переносов: около '+fmtD(proj,{day:'numeric',month:'long',year:'numeric'})+'.';
   }
   h+='<section class="card pad stack" aria-label="Прогресс"><div class="stat"><span><b>'+m.readCount+'</b> <span class="muted">из '+D.R.length+' глав</span></span><b>'+pct+'%</b></div><div class="bar" role="progressbar" aria-valuenow="'+pct+'" aria-valuemin="0" aria-valuemax="100"><i style="width:'+pct+'%"></i></div>'+
@@ -375,7 +393,7 @@ function todayView(){
 /* ---------- Schedule ---------- */
 function schedView(){
   const m=model(),P=m.P,D=m.D;
-  let h='<header class="hd"><div class="eyebrow">График</div><h1>'+planName(P)+'</h1><p class="planline">'+fmtD(P.startDate,{day:'numeric',month:'long',year:'numeric'})+' — '+fmtD(D.endDate,{day:'numeric',month:'long',year:'numeric'})+' · '+fmtPace(P.pace)+' гл. в день</p></header>';
+  let h='<header class="hd"><div class="eyebrow">График</div><h1>'+planName(P)+'</h1><p class="planline">'+fmtD(P.startDate,{day:'numeric',month:'long',year:'numeric'})+' — '+fmtD(D.endDate,{day:'numeric',month:'long',year:'numeric'})+' · '+fmtPace(D.avg)+' гл. в день</p></header>';
   let curMonth='',open='',cardOpen=false;
   const closeCard=()=>{if(cardOpen){h+='</section>';cardOpen=false}};
   let dd=0;
@@ -422,7 +440,8 @@ function draftFromPlan(){
 function pvHtml(){
   const d=ui.draft,p=mkPlan(d),D=derive(p);
   const f=D.range(0);
-  return '<span><b>≈ '+fmtPace(p.pace)+' гл. в день</b> · '+chWord(D.R.length)+' в плане</span>'+
+  return '<span><b>≈ '+fmtPace(D.avg)+' гл. в день</b> · '+chWord(D.R.length)+' в плане</span>'+
+    '<span class="muted">Дни разделены по объёму текста, чтобы чтение занимало примерно одинаковое время. Главы не разрываются.</span>'+
     '<span>Закончите '+fmtD(D.endDate,{day:'numeric',month:'long',year:'numeric'})+'</span>'+
     '<span class="muted">Первый день: '+(f[0]<f[1]?label(D.R.slice(f[0],f[1])):'—')+'</span>';
 }
@@ -453,6 +472,8 @@ function planView(){
   h+='<section class="card pad stack"><h2>Пропущенные дни</h2><p class="small muted">В эти дни главы не прибавляются, график сдвигается на следующий день.</p>'+
     (fut.length?'<div class="chips">'+fut.map(x=>'<span class="chip">'+fmtD(x,{day:'numeric',month:'short'})+'<button data-a="unskip" data-date="'+x+'" aria-label="Вернуть день '+x+'">×</button></span>').join('')+'</div>':'<p class="small muted">Пока нет.</p>')+
     '<div class="fld"><label for="f-skip">Добавить день</label><div class="two"><input class="inp" id="f-skip" type="date" value="'+ui.skipDate+'" min="'+todayStr()+'"><button class="btn" data-a="addSkip">Пропустить</button></div>'+(ui.skipMsg?'<p class="small" style="color:var(--carry)">'+ui.skipMsg+'</p>':'')+'</div></section>';
+  h+='<section class="card pad stack"><h2>Напоминание</h2><p class="small muted">Ежедневное событие в Календаре устройства с уведомлением. Время задаётся на каждом устройстве отдельно.</p>'+
+    '<div class="fld"><label for="f-rem">Время</label><div class="two"><input class="inp" id="f-rem" type="time" value="'+ui.remTime+'"><button class="btn" data-a="remind">Добавить в Календарь</button></div></div></section>';
   h+='<section class="card pad stack"><h2>Ссылки на Библию</h2><p class="small muted">Главы открываются в Священном Писании в переводе «Новый мир» (учебное издание) на русском языке.</p>'+
     seg('link',S.link,[['web','Через jw.org'],['app','Напрямую в приложение']])+
     '<p class="small muted">Обычная ссылка открывает JW Library, если приложение установлено. Если вместо него открывается браузер, включите прямую ссылку.</p></section>';
@@ -474,6 +495,16 @@ function setSkip(date,on){
   S.plan=Object.assign({},S.plan,{skips:[...set].sort()});
   ui.ahead=0;touch();render();
 }
+function makeIcs(time){
+  const [hh,mm]=time.split(':').map(Number),now=new Date();
+  let d=todayStr();if(hh*60+mm<=now.getHours()*60+now.getMinutes())d=addDays(d,1);
+  const z=n=>String(n).padStart(2,'0'),ds=d.replace(/-/g,'')+'T'+z(hh)+z(mm)+'00';
+  const url=location.href.split('#')[0].replace(/^blob:|^file:.*/,'');
+  return ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Bible schedule//RU','CALSCALE:GREGORIAN','BEGIN:VEVENT',
+    'UID:bible-reading-'+z(hh)+z(mm)+'@schedule','DTSTAMP:'+new Date().toISOString().replace(/[-:]/g,'').slice(0,15)+'Z',
+    'DTSTART:'+ds,'DURATION:PT15M','RRULE:FREQ=DAILY','SUMMARY:Чтение Библии','DESCRIPTION:Откройте график чтения.'+(url?' '+url:''),
+    url?'URL:'+url:'','BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:Чтение Библии','TRIGGER:PT0S','END:VALARM','END:VEVENT','END:VCALENDAR'].filter(Boolean).join('\r\n')+'\r\n';
+}
 const A={
   tab(t){ui.tab=t.dataset.v;ui.openDay=null;ui.confirmReset=false;if(ui.tab==='plan')ui.draft=draftFromPlan();render(true)},
   toggle(t){const k=+t.dataset.k;if(S.read.has(k))S.read.delete(k);else S.read.add(k);touch();render()},
@@ -483,6 +514,12 @@ const A={
   startNow(){S.plan=Object.assign({},S.plan,{startDate:todayStr()});touch();render()},
   rebase(){const m=model();if(!m.nextKey)return;S.plan=Object.assign({},S.plan,{startKey:m.nextKey,startDate:todayStr()});ui.ahead=0;ui.showAllCarried=false;touch();render()},
   openDay(t){const k=t.dataset.dd;ui.openDay=ui.openDay===k?null:k;render()},
+  remind(){
+    const v=ui.remTime||'20:00';try{localStorage.setItem('bible-rem-time',v)}catch(e){}
+    const blob=new Blob([makeIcs(v)],{type:'text/calendar;charset=utf-8'}),u=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=u;a.download='chtenie-biblii.ics';document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(u),4000);
+  },
   skipToday(){setSkip(todayStr(),true)},
   skipDay(t){setSkip(t.dataset.date,true)},
   unskip(t){setSkip(t.dataset.date,false)},
@@ -516,6 +553,7 @@ document.addEventListener('change',e=>{
   else if(t.id==='f-ch'){ui.draft.startKey=key(bookOf(ui.draft.startKey),+t.value);updatePreview()}
   else if(t.id==='f-stretch'){ui.draft.stretch=t.checked;updatePreview()}
   else if(t.id==='f-keep'){ui.draft.keepRead=t.checked}
+  else if(t.id==='f-rem'){if(t.value)ui.remTime=t.value}
   else if(t.id==='f-skip'){ui.skipDate=t.value;ui.skipMsg=''}
 });
 document.addEventListener('visibilitychange',()=>{
