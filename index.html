@@ -176,9 +176,8 @@ const wSum=ks=>ks.reduce((a,k)=>a+wOf(k),0);
 const VIDW=700;
 const wV=k=>wOf(k)+(k%1000===1?VIDW:0);
 const wSumV=ks=>ks.reduce((a,k)=>a+wV(k),0);
-const VID_NT=[801,805,808,811,814,817,820,823,826,829,832,835,838,841,844,847,850,853,856,859,862,865,868,871,874,877,880];
-const vidDoc=b=>1001071000+(b<=39?883+3*(b-1):VID_NT[b-40]);
-const vidHref=(b,mode)=>(mode==='app'?'jwlibrary:///finder?':'https://www.jw.org/finder?')+'wtlocale=U&docid='+vidDoc(b);
+const vidDoc=b=>1001070004+b;
+const vidHref=(b,mode)=>(mode==='app'?'jwlibrary:///finder?':'https://www.jw.org/finder?')+'srcid=jwlshare&wtlocale=U&prefer=lang&docid='+vidDoc(b);
 const bookOf=k=>Math.floor(k/1000);
 const chOf=k=>k%1000;
 /* [book, from, to] in approximate order of events */
@@ -256,8 +255,13 @@ function migratePlan(plan,readSet,today){
 /* rewards */
 const STREAKS=[7,10,14,21,30,50,75,100,150,200,300,365];
 function streakOf(log,skips,today){
-  const sk=new Set(skips||[]);let d=log.has(today)?today:addDays(today,-1),n=0;
-  for(let g=0;g<4000;g++){if(log.has(d))n++;else if(!sk.has(d))break;d=addDays(d,-1)}
+  /* planned rest days never break a streak, and neither does one missed day in any 7 */
+  const sk=new Set(skips||[]);let d=log.has(today)?today:addDays(today,-1),n=0,lastMiss=-7;
+  for(let g=0;g<4000;g++){
+    if(log.has(d))n++;
+    else if(!sk.has(d)){if(g-lastMiss>=7)lastMiss=g;else break}
+    d=addDays(d,-1);
+  }
   return n;
 }
 function streakTitle(n){return n===7?'Неделя подряд':n===14?'Две недели подряд':n===30?'Месяц подряд':n===365?'Год подряд':n+' '+pluralRu(n,['день','дня','дней'])+' подряд'}
@@ -404,8 +408,8 @@ function chRow(k,tag){
 function vidRow(b){
   const done=S.vid.has(b),nm=BOOKS[b-1][0];
   return '<div class="ch vid'+(done?' is-done':'')+'">'+
-    '<button class="ck" data-a="vid" data-b="'+b+'" aria-pressed="'+done+'" aria-label="'+(done?'Снять отметку: ролик ':'Отметить просмотренным: ролик ')+nm+'"><i>'+ICON_CHECK+'</i></button>'+
-    '<a class="nm" href="'+vidHref(b,S.link)+'" target="_blank" rel="noopener"><span class="t">Знакомство с книгой: '+nm+'</span><span class="tag">видео · 4 мин</span></a>'+ICON_GO+'</div>';
+    '<button class="ck" data-a="vid" data-b="'+b+'" aria-pressed="'+done+'" aria-label="'+(done?'Снять отметку: знакомство с книгой ':'Отметить: знакомство с книгой ')+nm+'"><i>'+ICON_CHECK+'</i></button>'+
+    '<a class="nm" href="'+vidHref(b,S.link)+'" target="_blank" rel="noopener"><span class="t">Знакомство с книгой: '+nm+'</span><span class="tag">4 мин</span></a>'+ICON_GO+'</div>';
 }
 const rowsFor=(k,tag)=>(chOf(k)===1?vidRow(bookOf(k)):'')+chRow(k,tag);
 function markVids(keys){keys.forEach(k=>{if(chOf(k)===1)S.vid.add(bookOf(k))})}
@@ -437,7 +441,7 @@ function rewardsHtml(){
   const nxt=STREAKS.find(m=>m>st);
   const all=STREAKS.map(m=>'s'+m).concat(OTHER_BADGES.map(b=>b.id)),got=all.filter(id=>S.badges[id]).length;
   let h='<section class="card pad stack" aria-label="Награды"><div class="streak">'+ICON_FLAME+'<div><div><span class="big">'+st+'</span> <span>'+pluralRu(st,['день','дня','дней'])+' подряд</span></div>'+
-    '<p class="small muted">'+(st?'':'Серия начнётся с первой отмеченной главы. ')+(nxt?'До награды «'+streakTitle(nxt)+'» ещё '+(nxt-st)+' '+pluralRu(nxt-st,['день','дня','дней'])+'.':'Все награды за серию получены!')+'</p></div></div>';
+    '<p class="small muted">'+(st?'':'Серия начнётся с первой отмеченной главы. ')+'Один день без чтения в неделю серию не прерывает. '+(nxt?'До награды «'+streakTitle(nxt)+'» ещё '+(nxt-st)+' '+pluralRu(nxt-st,['день','дня','дней'])+'.':'Все награды за серию получены!')+'</p></div></div>';
   h+='<div class="row"><button class="btn ghost" data-a="badges" aria-expanded="'+!!ui.showBadges+'">Награды: '+got+' из '+all.length+'</button></div>';
   if(ui.showBadges){
     h+='<div class="bdg">'+all.map(id=>{const i=badgeInfo(id),on=!!S.badges[id];
@@ -471,13 +475,13 @@ function todayView(){
   const m=model(),P=m.P,D=m.D;
   const d=new Date();
   const complete=m.readCount===D.R.length;
-  let h='<header class="hd"><div class="eyebrow">'+fmtD(m.t,{weekday:'long'})+'</div><h1>'+fmtD(m.t,{day:'numeric',month:'long'})+'</h1><p class="planline">'+planName(P)+(m.skipped?' · пропуск':m.dd>=0&&m.dd<D.totalDays?' · день '+(m.dd+1)+' из '+D.totalDays:'')+'</p></header>';
+  let h='<header class="hd"><div class="eyebrow">'+fmtD(m.t,{weekday:'long'})+'</div><h1>'+fmtD(m.t,{day:'numeric',month:'long'})+'</h1><p class="planline">'+planName(P)+(m.skipped?' · подготовка к встрече':m.dd>=0&&m.dd<D.totalDays?' · день '+(m.dd+1)+' из '+D.totalDays:'')+'</p></header>';
   h+=toastHtml();
   if(m.dd<0){
     h+='<div class="note"><p><b>План начнётся '+fmtD(P.startDate,{day:'numeric',month:'long'})+'.</b> Ниже чтение первого дня, его можно прочитать заранее.</p><div class="row"><button class="btn pri" data-a="startNow">Начать сегодня</button></div></div>';
   }
   if(m.skipped&&!complete){
-    h+='<div class="note ok"><p><b>Сегодня пропуск.</b> Новые главы не добавляются, график сдвинулся на день.</p><div class="row"><button class="btn" data-a="unskip" data-date="'+m.t+'">Вернуть день</button></div></div>';
+    h+='<div class="note ok"><p><b>Сегодня вы готовитесь к встрече.</b> Новые главы не добавляются, график сдвинулся на день. Серия дней не прерывается.</p><div class="row"><button class="btn" data-a="unskip" data-date="'+m.t+'">Вернуть день</button></div></div>';
   }
   const th=Math.max(6,Math.ceil(D.avg)*2);
   if(!complete&&m.carried.length>th){
@@ -498,7 +502,7 @@ function todayView(){
     h+='<section class="card" aria-label="Чтение на сегодня"><div class="cardhd"><h2>На сегодня</h2><span class="muted small">'+(vis.length?chWord(vis.length):'')+'</span></div>';
     if(!vis.length)h+='<div class="foot"><p class="muted">'+(m.skipped?'Сегодня без новых глав.':'Сегодня чтение не запланировано.')+'</p></div>';
     else h+=rows.join('');
-    h+='<div class="foot">'+(unreadVis?'<button class="btn pri" data-a="allToday">Отметить всё прочитанным</button>':(m.skipped?'':'<span class="tag ok">Всё прочитано</span>'))+(m.dd>=0&&nextLbl?'<button class="btn" data-a="ahead">Добавить: '+nextLbl+'</button>':'')+'</div>'+(!m.skipped&&m.dd>=0&&m.dd<D.totalDays?'<div class="foot"><button class="btn ghost" data-a="skipToday">Пропустить сегодня</button></div>':'')+'</section>';
+    h+='<div class="foot">'+(unreadVis?'<button class="btn pri" data-a="allToday">Отметить всё прочитанным</button>':(m.skipped?'':'<span class="tag ok">Всё прочитано</span>'))+(m.dd>=0&&nextLbl?'<button class="btn" data-a="ahead">Добавить: '+nextLbl+'</button>':'')+'</div>'+(!m.skipped&&m.dd>=0&&m.dd<D.totalDays?'<div class="foot"><button class="btn ghost" data-a="skipToday">Сегодня готовлюсь к встрече</button></div>':'')+'</section>';
   }
   const pct=D.R.length?Math.round(m.readCount/D.R.length*100):0;
   const unreadAll=D.R.length-m.readCount;
@@ -529,7 +533,7 @@ function schedView(){
     const isOpen=ui.openDay===date,isToday=date===m.t,past=date<m.t,canSkip=date>=m.t;
     const dateBox='<span class="dd"><b>'+date.slice(8)*1+'</b><span>'+fmtD(date,{weekday:'short'})+'</span></span>';
     if(sk){
-      h+='<div class="dw"><button class="day skipd'+(isToday?' today':'')+'"'+(isToday?' id="d-today"':'')+' data-a="openDay" data-dd="'+date+'" aria-expanded="'+isOpen+'">'+dateBox+'<span class="lb">Пропуск</span><span class="st">'+(isToday?'<span class="tag now">сегодня</span>':'')+'</span></button>';
+      h+='<div class="dw"><button class="day skipd'+(isToday?' today':'')+'"'+(isToday?' id="d-today"':'')+' data-a="openDay" data-dd="'+date+'" aria-expanded="'+isOpen+'">'+dateBox+'<span class="lb">Подготовка к встрече</span><span class="st">'+(isToday?'<span class="tag now">сегодня</span>':'')+'</span></button>';
       if(isOpen)h+='<div class="dayx"><p class="small muted">В этот день новые главы не добавляются.</p><div class="foot"><button class="btn" data-a="unskip" data-date="'+date+'">Вернуть день</button></div></div>';
       h+='</div>';continue;
     }
@@ -540,9 +544,9 @@ function schedView(){
     else if(isToday)st=(rc?'<span class="small" style="margin-right:8px">'+rc+'/'+keys.length+'</span>':'')+'<span class="tag now">сегодня</span>';
     else if(past)st=(rc?'<span class="small" style="margin-right:8px;color:var(--carry)">'+rc+'/'+keys.length+'</span>':'')+'<span class="tag">не прочитано</span>';
     else st=rc?'<span class="small">'+rc+'/'+keys.length+'</span>':'';
-    h+='<div class="dw"><button class="day'+cls+(isToday?' today':'')+'"'+(isToday?' id="d-today"':'')+' data-a="openDay" data-dd="'+date+'" aria-expanded="'+isOpen+'">'+dateBox+'<span class="lb">'+label(keys)+(keys.some(k=>chOf(k)===1)?' <span class="muted">· ролик</span>':'')+'</span><span class="st">'+st+'</span></button>';
+    h+='<div class="dw"><button class="day'+cls+(isToday?' today':'')+'"'+(isToday?' id="d-today"':'')+' data-a="openDay" data-dd="'+date+'" aria-expanded="'+isOpen+'">'+dateBox+'<span class="lb">'+label(keys)+(keys.some(k=>chOf(k)===1)?' <span class="muted">· знакомство</span>':'')+'</span><span class="st">'+st+'</span></button>';
     if(isOpen){
-      h+='<div class="dayx">'+keys.map(k=>rowsFor(k)).join('')+((all&&!canSkip)?'':'<div class="foot">'+(all?'':'<button class="btn pri" data-a="dayAll" data-dd="'+dd+'">Отметить день прочитанным</button>')+(canSkip?'<button class="btn ghost" data-a="skipDay" data-date="'+date+'">Пропустить этот день</button>':'')+'</div>')+'</div>';
+      h+='<div class="dayx">'+keys.map(k=>rowsFor(k)).join('')+((all&&!canSkip)?'':'<div class="foot">'+(all?'':'<button class="btn pri" data-a="dayAll" data-dd="'+dd+'">Отметить день прочитанным</button>')+(canSkip?'<button class="btn ghost" data-a="skipDay" data-date="'+date+'">В этот день готовлюсь к встрече</button>':'')+'</div>')+'</div>';
     }
     h+='</div>';
     dd++;
@@ -565,7 +569,7 @@ function pvHtml(){
   const f=D.range(0);
   return '<span><b>≈ '+fmtPace(D.avg)+' гл. в день</b> · '+chWord(D.R.length)+' в плане</span>'+
     '<span class="muted">Дни разделены по объёму текста, чтобы чтение занимало примерно одинаковое время. Главы не разрываются.</span>'+
-    '<span class="muted">К первой главе каждой книги добавлено время на ролик (около 4 минут), а в один день книги не смешиваются.</span>'+
+    '<span class="muted">К первой главе каждой книги добавлено время на знакомство с книгой (около 4 минут), а в один день книги не смешиваются.</span>'+
     '<span>Закончите '+fmtD(D.endDate,{day:'numeric',month:'long',year:'numeric'})+'</span>'+
     '<span class="muted">Первый день: '+(f[0]<f[1]?label(D.R.slice(f[0],f[1])):'—')+'</span>';
 }
@@ -593,9 +597,9 @@ function planView(){
     '<div class="pv" id="pv">'+pvHtml()+'</div>'+
     '<div class="row"><button class="btn pri" data-a="save">Сохранить план</button></div></section>';
   const fut=skipList(S.plan).filter(x=>x>=todayStr());
-  h+='<section class="card pad stack"><h2>Пропущенные дни</h2><p class="small muted">В эти дни главы не прибавляются, график сдвигается на следующий день.</p>'+
+  h+='<section class="card pad stack"><h2>Дни без чтения</h2><p class="small muted">Например, дни подготовки к встрече. В эти дни главы не прибавляются, график сдвигается на следующий день.</p>'+
     (fut.length?'<div class="chips">'+fut.map(x=>'<span class="chip">'+fmtD(x,{day:'numeric',month:'short'})+'<button data-a="unskip" data-date="'+x+'" aria-label="Вернуть день '+x+'">×</button></span>').join('')+'</div>':'<p class="small muted">Пока нет.</p>')+
-    '<div class="fld"><label for="f-skip">Добавить день</label><div class="two"><input class="inp" id="f-skip" type="date" value="'+ui.skipDate+'" min="'+todayStr()+'"><button class="btn" data-a="addSkip">Пропустить</button></div>'+(ui.skipMsg?'<p class="small" style="color:var(--carry)">'+ui.skipMsg+'</p>':'')+'</div></section>';
+    '<div class="fld"><label for="f-skip">Добавить день</label><div class="two"><input class="inp" id="f-skip" type="date" value="'+ui.skipDate+'" min="'+todayStr()+'"><button class="btn" data-a="addSkip">Добавить</button></div>'+(ui.skipMsg?'<p class="small" style="color:var(--carry)">'+ui.skipMsg+'</p>':'')+'</div></section>';
   h+='<section class="card pad stack"><h2>Напоминание</h2><p class="small muted">Ежедневное событие в Календаре устройства с уведомлением. Время задаётся на каждом устройстве отдельно.</p>'+
     '<div class="fld"><label for="f-rem">Время</label><div class="two"><input class="inp" id="f-rem" type="time" value="'+ui.remTime+'"><button class="btn" data-a="remind">Добавить в Календарь</button></div></div></section>';
   h+='<section class="card pad stack"><h2>Ссылки на Библию</h2><p class="small muted">Главы открываются в Священном Писании в переводе «Новый мир» (учебное издание) на русском языке.</p>'+
